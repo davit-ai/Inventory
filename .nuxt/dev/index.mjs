@@ -3,8 +3,11 @@ import { Server } from 'node:http';
 import { resolve, dirname, join } from 'node:path';
 import nodeCrypto from 'node:crypto';
 import { parentPort, threadId } from 'node:worker_threads';
-import { defineEventHandler, handleCacheHeaders, splitCookiesString, createEvent, fetchWithEvent, isEvent, eventHandler, setHeaders, sendRedirect, proxyRequest, getRequestHeader, setResponseHeaders, setResponseStatus, send, getRequestHeaders, setResponseHeader, getRequestURL, getResponseHeader, getQuery as getQuery$1, readBody, createApp, createRouter as createRouter$1, toNodeListener, lazyEventHandler, getResponseStatus, createError, getRouterParam, getResponseStatusText } from 'file://E:/Learning/inventory/node_modules/h3/dist/index.mjs';
+import { defineEventHandler, handleCacheHeaders, splitCookiesString, createEvent, fetchWithEvent, isEvent, eventHandler, setHeaders, sendRedirect, proxyRequest, getRequestHeader, setResponseHeaders, setResponseStatus, send, getRequestHeaders, setResponseHeader, getRequestURL, getResponseHeader, getQuery as getQuery$1, readBody, createApp, createRouter as createRouter$1, toNodeListener, lazyEventHandler, getResponseStatus, createError, getRouterParam, setCookie, getResponseStatusText } from 'file://E:/Learning/inventory/node_modules/h3/dist/index.mjs';
 import { escapeHtml } from 'file://E:/Learning/inventory/node_modules/@vue/shared/dist/shared.cjs.js';
+import bcrypt from 'file://E:/Learning/inventory/node_modules/bcryptjs/index.js';
+import jwt from 'file://E:/Learning/inventory/node_modules/jsonwebtoken/index.js';
+import pkg from 'file://E:/Learning/inventory/node_modules/pg/esm/index.mjs';
 import { createRenderer, getRequestDependencies, getPreloadLinks, getPrefetchLinks } from 'file://E:/Learning/inventory/node_modules/vue-bundle-renderer/dist/runtime.mjs';
 import { parseURL, withoutBase, joinURL, getQuery, withQuery, withTrailingSlash, joinRelativeURL } from 'file://E:/Learning/inventory/node_modules/ufo/dist/index.mjs';
 import { renderToString } from 'file://E:/Learning/inventory/node_modules/vue/server-renderer/index.mjs';
@@ -652,7 +655,7 @@ const _inlineRuntimeConfig = {
   "dbName": "inventory_db",
   "dbUser": "postgres",
   "dbPassword": "root",
-  "jwtSecret": "your-very-secure-secret-key-here"
+  "jwtSecret": "your-secret-key-change-this"
 };
 const envOptions = {
   prefix: "NITRO_",
@@ -1412,9 +1415,11 @@ async function getIslandContext(event) {
   return ctx;
 }
 
+const _lazy__58YqT = () => Promise.resolve().then(function () { return login_post$1; });
 const _lazy_1Xxr_l = () => Promise.resolve().then(function () { return renderer$1; });
 
 const handlers = [
+  { route: '/api/auth/login', handler: _lazy__58YqT, lazy: true, middleware: false, method: "post" },
   { route: '/__nuxt_error', handler: _lazy_1Xxr_l, lazy: true, middleware: false, method: undefined },
   { route: '/__nuxt_island/**', handler: _SxA8c9, lazy: false, middleware: false, method: undefined },
   { route: '/**', handler: _lazy_1Xxr_l, lazy: true, middleware: false, method: undefined }
@@ -1743,6 +1748,99 @@ const styles = {};
 const styles$1 = /*#__PURE__*/Object.freeze({
   __proto__: null,
   default: styles
+});
+
+const { Pool } = pkg;
+let pool = null;
+function getDatabase() {
+  if (!pool) {
+    const config = useRuntimeConfig();
+    pool = new Pool({
+      host: config.dbHost,
+      port: parseInt(config.dbPort),
+      database: config.dbName,
+      user: config.dbUser,
+      password: config.dbPassword,
+      max: 20,
+      idleTimeoutMillis: 3e4,
+      connectionTimeoutMillis: 2e3
+    });
+    pool.on("error", (err) => {
+      console.error("Unexpected error on idle client", err);
+    });
+  }
+  return pool;
+}
+async function query(text, params) {
+  const pool2 = getDatabase();
+  const client = await pool2.connect();
+  try {
+    const result = await client.query(text, params);
+    return result;
+  } finally {
+    client.release();
+  }
+}
+
+const login_post = defineEventHandler(async (event) => {
+  try {
+    const { email, password } = await readBody(event);
+    if (!email || !password) {
+      throw createError({
+        statusCode: 400,
+        statusMessage: "Email and password are required"
+      });
+    }
+    const result = await query(
+      "SELECT id, email, password_hash, name FROM users WHERE email = $1",
+      [email]
+    );
+    if (result.rows.length === 0) {
+      throw createError({
+        statusCode: 401,
+        statusMessage: "Invalid credentials"
+      });
+    }
+    const user = result.rows[0];
+    const isValidPassword = await bcrypt.compare(password, user.password_hash);
+    if (!isValidPassword) {
+      throw createError({
+        statusCode: 401,
+        statusMessage: "Invalid credentials"
+      });
+    }
+    const config = useRuntimeConfig();
+    const token = jwt.sign(
+      { userId: user.id, email: user.email },
+      config.jwtSecret,
+      { expiresIn: "7d" }
+    );
+    setCookie(event, "auth-token", token, {
+      httpOnly: true,
+      secure: false,
+      sameSite: "strict",
+      maxAge: 60 * 60 * 24 * 7
+      // 7 days
+    });
+    return {
+      success: true,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name
+      }
+    };
+  } catch (error) {
+    throw createError({
+      statusCode: error.statusCode || 500,
+      statusMessage: error.statusMessage || "Login failed"
+    });
+  }
+});
+
+const login_post$1 = /*#__PURE__*/Object.freeze({
+  __proto__: null,
+  default: login_post
 });
 
 function renderPayloadResponse(ssrContext) {
