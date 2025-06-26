@@ -1,3 +1,3 @@
 <template>
-  <p>Welcome to login</p>
+  <p>Welcome to login page</p>
 </template>
