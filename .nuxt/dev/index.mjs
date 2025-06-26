@@ -644,7 +644,15 @@ const _inlineRuntimeConfig = {
       }
     }
   },
-  "public": {}
+  "public": {
+    "apiBase": "/api"
+  },
+  "dbHost": "localhost",
+  "dbPort": "5432",
+  "dbName": "inventory_db",
+  "dbUser": "postgres",
+  "dbPassword": "root",
+  "jwtSecret": "your-very-secure-secret-key-here"
 };
 const envOptions = {
   prefix: "NITRO_",
@@ -994,23 +1002,6 @@ async function errorHandler(error, event) {
   // H3 will handle fallback
 }
 
-const script = `
-if (!window.__NUXT_DEVTOOLS_TIME_METRIC__) {
-  Object.defineProperty(window, '__NUXT_DEVTOOLS_TIME_METRIC__', {
-    value: {},
-    enumerable: false,
-    configurable: true,
-  })
-}
-window.__NUXT_DEVTOOLS_TIME_METRIC__.appInit = Date.now()
-`;
-
-const _710as8Tibfj3KEQ_ZQQEwR5kbMOZB_QNYtoouJXxvHY = (function(nitro) {
-  nitro.hooks.hook("render:html", (htmlContext) => {
-    htmlContext.head.push(`<script>${script}<\/script>`);
-  });
-});
-
 const rootDir = "E:/Learning/inventory";
 
 const appHead = {"meta":[{"name":"viewport","content":"width=device-width, initial-scale=1"},{"charset":"utf-8"}],"link":[],"style":[],"script":[],"noscript":[]};
@@ -1100,8 +1091,7 @@ function onConsoleLog(callback) {
 }
 
 const plugins = [
-  _710as8Tibfj3KEQ_ZQQEwR5kbMOZB_QNYtoouJXxvHY,
-_SFloL7NNctHADOAKb9hzAwHzpdG8cphQSa9BLRXrpxU
+  _SFloL7NNctHADOAKb9hzAwHzpdG8cphQSa9BLRXrpxU
 ];
 
 const VueResolver = (_, value) => {
