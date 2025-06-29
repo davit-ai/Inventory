@@ -1,7 +1,6 @@
 export const useAuth = () => {
   const user = ref(null);
   const loading = ref(false);
-  console.log('useAuth composable initialized');
 
   const login = async (email, password) => {
     loading.value = true;
@@ -64,11 +63,14 @@ export const useAuth = () => {
   };
 
   const checkAuth = async () => {
+    console.log('checkAuth: Checking authentication...');
     try {
-      const { data } = await $fetch('/api/auth/me');
-      user.value = data.user;
+      const response = await $fetch('/api/auth/me');
+      console.log('checkAuth: Response from /api/auth/me:', response);
+      user.value = response.user;
       return true;
     } catch (error) {
+      console.error('checkAuth: Error occurred:', error);
       user.value = null;
       return false;
     }
