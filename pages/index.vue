@@ -38,7 +38,7 @@
             to="/auth/register"
             class="btn-secondary w-full block text-center"
           >
-           Register
+            Register
           </NuxtLink>
         </div>
       </div>

@@ -655,7 +655,7 @@ const _inlineRuntimeConfig = {
   "dbName": "inventory_db",
   "dbUser": "postgres",
   "dbPassword": "root",
-  "jwtSecret": "your-secret-key-change-this"
+  "jwtSecret": "thisisverysecret"
 };
 const envOptions = {
   prefix: "NITRO_",
@@ -1416,10 +1416,12 @@ async function getIslandContext(event) {
 }
 
 const _lazy__58YqT = () => Promise.resolve().then(function () { return login_post$1; });
+const _lazy_AG1QFt = () => Promise.resolve().then(function () { return register_post$1; });
 const _lazy_1Xxr_l = () => Promise.resolve().then(function () { return renderer$1; });
 
 const handlers = [
   { route: '/api/auth/login', handler: _lazy__58YqT, lazy: true, middleware: false, method: "post" },
+  { route: '/api/auth/register', handler: _lazy_AG1QFt, lazy: true, middleware: false, method: "post" },
   { route: '/__nuxt_error', handler: _lazy_1Xxr_l, lazy: true, middleware: false, method: undefined },
   { route: '/__nuxt_island/**', handler: _SxA8c9, lazy: false, middleware: false, method: undefined },
   { route: '/**', handler: _lazy_1Xxr_l, lazy: true, middleware: false, method: undefined }
@@ -1810,6 +1812,12 @@ const login_post = defineEventHandler(async (event) => {
       });
     }
     const config = useRuntimeConfig();
+    if (!config.jwtSecret) {
+      throw createError({
+        statusCode: 500,
+        statusMessage: "JWT secret is not configured"
+      });
+    }
     const token = jwt.sign(
       { userId: user.id, email: user.email },
       config.jwtSecret,
@@ -1822,7 +1830,7 @@ const login_post = defineEventHandler(async (event) => {
       maxAge: 60 * 60 * 24 * 7
       // 7 days
     });
-    return {
+    const response = {
       success: true,
       user: {
         id: user.id,
@@ -1830,6 +1838,7 @@ const login_post = defineEventHandler(async (event) => {
         name: user.name
       }
     };
+    return response;
   } catch (error) {
     throw createError({
       statusCode: error.statusCode || 500,
@@ -1841,6 +1850,88 @@ const login_post = defineEventHandler(async (event) => {
 const login_post$1 = /*#__PURE__*/Object.freeze({
   __proto__: null,
   default: login_post
+});
+
+const register_post = defineEventHandler(async (event) => {
+  try {
+    const { email, password, name } = await readBody(event);
+    if (!email || !password) {
+      throw createError({
+        statusCode: 400,
+        statusMessage: "Email and password are required"
+      });
+    }
+    console.log("Received registration data:", { email, password, name });
+    if (password.length < 6) {
+      throw createError({
+        statusCode: 400,
+        statusMessage: "Password must be at least 6 characters long"
+      });
+    }
+    console.log("Password validation passed");
+    const existingUser = await query("SELECT id FROM users WHERE email = $1", [
+      email
+    ]);
+    console.log("Existing user check:", existingUser.rows.length);
+    if (existingUser.rows.length > 0) {
+      throw createError({
+        statusCode: 409,
+        statusMessage: "User already exists with this email"
+      });
+    }
+    console.log("No existing user found, proceeding with registration");
+    const saltRounds = 12;
+    const passwordHash = await bcrypt.hash(password, saltRounds);
+    console.log("Password hashed successfully");
+    const result = await query(
+      "INSERT INTO users (email, password_hash, name) VALUES ($1, $2, $3) RETURNING id, email, name",
+      [email, passwordHash, name || null]
+    );
+    console.log("User created successfully:", result.rows[0]);
+    const user = result.rows[0];
+    const config = useRuntimeConfig();
+    if (!config.jwtSecret) {
+      throw createError({
+        statusCode: 500,
+        statusMessage: "JWT secret is not configured"
+      });
+    }
+    console.log("JWT secret found, generating token");
+    const token = jwt.sign(
+      { userId: user.id, email: user.email },
+      config.jwtSecret,
+      { expiresIn: "7d" }
+    );
+    console.log("JWT token generated successfully");
+    setCookie(event, "auth-token", token, {
+      httpOnly: true,
+      secure: false,
+      sameSite: "strict",
+      maxAge: 60 * 60 * 24 * 7
+      // 7 days
+    });
+    console.log("HTTP-only cookie set successfully");
+    return {
+      success: true,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name
+      }
+    };
+    console.log("Registration successful");
+  } catch (error) {
+    console.error("Registration error:", error);
+    throw createError({
+      statusCode: error.statusCode || 500,
+      statusMessage: error.statusMessage || "Registration failed"
+    });
+  }
+});
+
+const register_post$1 = /*#__PURE__*/Object.freeze({
+  __proto__: null,
+  default: register_post
 });
 
 function renderPayloadResponse(ssrContext) {

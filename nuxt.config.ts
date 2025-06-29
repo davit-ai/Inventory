@@ -11,7 +11,7 @@ export default defineNuxtConfig({
     dbName: process.env.DB_NAME || 'inventory_db',
     dbUser: process.env.DB_USER || 'postgres',
     dbPassword: process.env.DB_PASSWORD || 'root',
-    jwtSecret: process.env.JWT_SECRET || 'your-secret-key-change-this',
+    jwtSecret: process.env.NUXT_PUBLIC_JWT_SECRET,
     // Public keys (exposed to client-side)
     public: {
       apiBase: '/api',

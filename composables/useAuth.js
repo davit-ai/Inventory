@@ -1,22 +1,27 @@
 export const useAuth = () => {
   const user = ref(null);
   const loading = ref(false);
+  console.log('useAuth composable initialized');
 
   const login = async (email, password) => {
     loading.value = true;
+    console.log('Attempting to log in with email:', email);
+    console.log('Attempting to log in with password:', password);
     try {
-      const { data } = await $fetch('/api/auth/login', {
+      const response = await $fetch('/api/auth/login', {
         method: 'POST',
         body: { email, password },
       });
+      console.log('Login response:', response);
 
-      user.value = data.user;
+      user.value = response.user;
       await navigateTo('/dashboard');
       return { success: true };
     } catch (error) {
+      console.error('Login error:', error);
       return {
         success: false,
-        error: error.data?.message || 'Login failed',
+        error: error.data?.message || 'Login faileeeeed',
       };
     } finally {
       loading.value = false;
@@ -26,18 +31,22 @@ export const useAuth = () => {
   const register = async (email, password, name) => {
     loading.value = true;
     try {
-      const { data } = await $fetch('/api/auth/register', {
+      const response = await $fetch('/api/auth/register', {
         method: 'POST',
         body: { email, password, name },
       });
 
-      user.value = data.user;
+      user.value = response.user;
       await navigateTo('/dashboard');
       return { success: true };
     } catch (error) {
       return {
         success: false,
-        error: error.data?.message || 'Registration failed',
+        error:
+          error.data?.message ||
+          error.statusMessage ||
+          error.message ||
+          'Registration failed',
       };
     } finally {
       loading.value = false;

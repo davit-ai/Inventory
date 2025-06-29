@@ -30,11 +30,7 @@
             />
           </div>
 
-          <button
-            type="submit"
-            :disabled="loading"
-            class="btn-primary w-full"
-          >
+          <button type="submit" :disabled="loading" class="btn-primary w-full">
             {{ loading ? 'Signing In...' : 'Sign In' }}
           </button>
 
@@ -44,13 +40,21 @@
               @click="showRegister = !showRegister"
               class="text-blue-600 hover:text-blue-700 text-sm"
             >
-              {{ showRegister ? 'Already have an account? Sign in' : "Don't have an account? Sign up" }}
+              {{
+                showRegister
+                  ? 'Already have an account? Sign in'
+                  : "Don't have an account? Sign up"
+              }}
             </button>
           </div>
         </form>
 
         <!-- Registration Form -->
-        <form v-if="showRegister" @submit.prevent="handleSignUp" class="space-y-4 mt-6 pt-6 border-t border-gray-200">
+        <form
+          v-if="showRegister"
+          @submit.prevent="handleSignUp"
+          class="space-y-4 mt-6 pt-6 border-t border-gray-200"
+        >
           <h3 class="text-lg font-semibold text-gray-900">Create Account</h3>
 
           <div>
@@ -86,16 +90,15 @@
             />
           </div>
 
-          <button
-            type="submit"
-            :disabled="loading"
-            class="btn-primary w-full"
-          >
+          <button type="submit" :disabled="loading" class="btn-primary w-full">
             {{ loading ? 'Creating Account...' : 'Create Account' }}
           </button>
         </form>
 
-        <div v-if="error" class="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+        <div
+          v-if="error"
+          class="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg"
+        >
           <p class="text-red-600 text-sm">{{ error }}</p>
         </div>
       </div>
@@ -104,35 +107,42 @@
 </template>
 
 <script setup>
-const { login, register, loading } = useAuth()
-
-const email = ref('')
-const password = ref('')
-const name = ref('')
-const registerEmail = ref('')
-const registerPassword = ref('')
-const error = ref('')
-const showRegister = ref(false)
+const { login, register, loading } = useAuth();
+const email = ref('');
+const password = ref('');
+const name = ref('');
+const registerEmail = ref('');
+const registerPassword = ref('');
+const error = ref('');
+const showRegister = ref(false);
 
 const handleSignIn = async () => {
-  error.value = ''
-  const result = await login(email.value, password.value)
+  error.value = '';
+  const result = await login(email.value, password.value);
 
   if (!result.success) {
-    error.value = result.error
+    error.value = result.error;
   }
-}
+};
 
 const handleSignUp = async () => {
-  error.value = ''
-  const result = await register(registerEmail.value, registerPassword.value, name.value)
-
+  error.value = '';
+  const result = await register(
+    registerEmail.value,
+    registerPassword.value,
+    name.value
+  );
   if (!result.success) {
-    error.value = result.error
+    error.value = result.error;
+  } else {
+    // Optionally, you can auto-login after registration
+    email.value = registerEmail.value;
+    password.value = registerPassword.value;
+    await handleSignIn();
   }
-}
+};
 
 useHead({
-  title: 'Sign In - Inventory Manager'
-})
+  title: 'Sign In - Inventory Manager',
+});
 </script>
